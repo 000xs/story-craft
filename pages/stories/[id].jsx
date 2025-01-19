@@ -4,38 +4,7 @@ import { useSession } from "next-auth/react";
 import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 
-export async function getStaticPaths() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  const response = await fetch(`${apiUrl}/api/stories`);
-  const stories = await response.json();
 
-  const paths = stories.map((story) => ({
-    params: { id: story.id.toString() },
-  }));
-
-  return {
-    paths,
-    fallback: "blocking", 
-  };
-}
-
-export async function getStaticProps({ params }) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  const response = await fetch(`${apiUrl}/api/stories/${params.id}`);
-  const story = await response.json();
-
-  if (!story) {
-    return {
-      notFound: true, 
-    };
-  }
-
-  return {
-    props: {
-      story,
-    },
-    revalidate: 60,  
-}
 
 export default function StoryDetail({ story }) {
   const { data: session } = useSession();
@@ -171,4 +140,38 @@ export default function StoryDetail({ story }) {
       </main>
     </div>
   );
+}
+
+export async function getStaticPaths() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const response = await fetch(`${apiUrl}/api/stories`);
+  const stories = await response.json();
+
+  const paths = stories.map((story) => ({
+    params: { id: story.id.toString() },
+  }));
+
+  return {
+    paths,
+    fallback: "blocking",
+  };
+}
+
+export async function getStaticProps({ params }) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const response = await fetch(`${apiUrl}/api/stories/${params.id}`);
+  const story = await response.json();
+
+  if (!story) {
+    return {
+      notFound: true,
+    };
+  }
+
+  return {
+    props: {
+      story,
+    },
+    revalidate: 60,
+  }
 }
