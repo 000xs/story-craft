@@ -1,37 +1,55 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 
-export default function StoryDetail() {
-  const { id } = useParams();
-  const { data: session } = useSession();
-  const [story, setStory] = useState(null);
-  const [newComment, setNewComment] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+export async function getStaticPaths() {
+  // Fetch all story IDs from your backend or database
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stories`);
+  const stories = await response.json();
 
-  const fetchStory = async () => {
-    try {
-      const response = await fetch(`/api/stories/${id}`);
-      if (!response.ok) throw new Error("Failed to fetch story");
-      const data = await response.json();
-      setStory(data);
-    } catch (error) {
-      alert("Failed to load story. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
+  // Generate paths for all stories
+  const paths = stories.map((story) => ({
+    params: { id: story.id.toString() },
+  }));
+
+  return {
+    paths,
+    fallback: "blocking", // Generate pages on-demand if not found
   };
+}
+
+export async function getStaticProps({ params }) {
+  // Fetch the story data for the given ID
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stories/${params.id}`);
+  const story = await response.json();
+
+  if (!story) {
+    return {
+      notFound: true, // Return a 404 page if the story doesn't exist
+    };
+  }
+
+  return {
+    props: {
+      story,
+    },
+    revalidate: 60, // Revalidate the page every 60 seconds
+  };
+}
+
+export default function StoryDetail({ story }) {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [newComment, setNewComment] = useState("");
 
   const handleComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
     try {
-      const response = await fetch(`/api/stories/${id}/comments`, {
+      const response = await fetch(`/api/stories/${story.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newComment, userId: session.user.id, username: session.user.name }),
@@ -51,13 +69,7 @@ export default function StoryDetail() {
     }
   };
 
-  useEffect(() => {
-    if (id) {
-      fetchStory();
-    }
-  }, [id]);
-
-  if (isLoading) {
+  if (router.isFallback) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-16 h-16 border-4 border-t-blue-500 border-b-blue-500 rounded-full animate-spin"></div>
@@ -95,7 +107,7 @@ export default function StoryDetail() {
       {/* Main Content */}
       <main className="container max-w-3xl px-4 py-8 mx-auto">
         <div className="p-6 bg-white border rounded-lg shadow-sm">
-     
+          {/* Story Header */}
           <div className="flex items-center gap-4">
             <img
               src={story.authorImage}
@@ -110,10 +122,10 @@ export default function StoryDetail() {
             </div>
           </div>
 
-         
+          {/* Story Content */}
           <p className="mt-4 text-lg leading-relaxed text-gray-700">{story.content}</p>
 
- 
+          {/* Comments Section */}
           <div className="mt-8">
             <h2 className="mb-4 text-xl font-bold">Comments</h2>
             <form onSubmit={handleComment} className="flex gap-2 mb-6">
