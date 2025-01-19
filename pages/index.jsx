@@ -1,6 +1,7 @@
 import { useSession, signIn } from 'next-auth/react'
 import Navbar from '../components/Navbar'
 import { Github, Globe, Users, PenTool } from 'lucide-react'
+import Link from 'next/link'
 
 export default function LandingPage() {
   const { data: session } = useSession()
@@ -16,7 +17,7 @@ export default function LandingPage() {
             Create Stories Together
           </h1>
           <p className="mb-8 text-xl text-gray-600">
-            Join the world's most creative storytelling community
+            Join the world&apos;s most creative storytelling community
           </p>
           {!session ? (
             <button
@@ -26,12 +27,12 @@ export default function LandingPage() {
               Get Started For Free
             </button>
           ) : (
-            <a
+            <Link
               href="/dashboard"
               className="px-6 py-3 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
             >
               Go to Dashboard
-            </a>
+            </Link>
           )}
         </div>
 
