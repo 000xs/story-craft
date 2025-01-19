@@ -5,8 +5,8 @@ import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 
 export async function getStaticPaths() {
-  // Fetch all story IDs from your backend or database
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stories`);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const response = await fetch(`${apiUrl}/api/stories`);
   const stories = await response.json();
 
   // Generate paths for all stories
@@ -22,7 +22,7 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   // Fetch the story data for the given ID
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stories/${params.id}`);
+  const response = await fetch(`${apiUrl}/api/stories/${params.id}`);
   const story = await response.json();
 
   if (!story) {
