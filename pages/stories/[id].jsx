@@ -1,33 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 
 export async function getStaticPaths() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   const response = await fetch(`${apiUrl}/api/stories`);
   const stories = await response.json();
 
-  // Generate paths for all stories
   const paths = stories.map((story) => ({
     params: { id: story.id.toString() },
   }));
 
   return {
     paths,
-    fallback: "blocking", // Generate pages on-demand if not found
+    fallback: "blocking", 
   };
 }
 
 export async function getStaticProps({ params }) {
-  // Fetch the story data for the given ID
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   const response = await fetch(`${apiUrl}/api/stories/${params.id}`);
   const story = await response.json();
 
   if (!story) {
     return {
-      notFound: true, // Return a 404 page if the story doesn't exist
+      notFound: true, 
     };
   }
 
@@ -35,8 +34,7 @@ export async function getStaticProps({ params }) {
     props: {
       story,
     },
-    revalidate: 60, // Revalidate the page every 60 seconds
-  };
+    revalidate: 60,  
 }
 
 export default function StoryDetail({ story }) {
