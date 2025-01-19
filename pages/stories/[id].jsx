@@ -5,7 +5,7 @@ import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 
 export async function getStaticPaths() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "story-craft-coral.vercel.app";
   const response = await fetch(`${apiUrl}/api/stories`);
   const stories = await response.json();
 
