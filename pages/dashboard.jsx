@@ -114,7 +114,7 @@ export default function Dashboard() {
                             </div>
                         ) : (
                             stories.map((story) => (
-                                <div key={story.id} className="p-6 bg-white border rounded-lg shadow-sm">
+                                <Link href={`/stories/${story.id} `} key={story.id} className="p-6 bg-white border rounded-lg shadow-sm">
                                     {/* Story Header */}
                                     <div className="flex items-center gap-4">
                                         <img
@@ -159,7 +159,7 @@ export default function Dashboard() {
                                             </button>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))
                         )}
                     </div>
