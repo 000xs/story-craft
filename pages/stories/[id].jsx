@@ -1,177 +1,143 @@
-import { useState } from "react";
-import { useRouter } from "next/router";
-import { useSession } from "next-auth/react";
-import { ArrowLeft, Send } from "lucide-react";
-import Link from "next/link";
+// pages/stories/[id].jsx
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
+import Navbar from '../../components/Navbar';
 
-
-
-export default function StoryDetail({ story }) {
-  const { data: session } = useSession();
+export default function StoryDetails() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [newComment, setNewComment] = useState("");
+  const { id } = router.query;
+  const [story, setStory] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
 
-  const handleComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
+  // Fetch story details from the backend
+  const fetchStory = async () => {
     try {
-      const response = await fetch(`/api/stories/${story.id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment, userId: session.user.id, username: session.user.name }),
-      });
+      const response = await fetch(`/api/stories/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch story');
+      }
+      const data = await response.json();
 
-      if (!response.ok) throw new Error("Failed to post comment");
+      // Ensure comments is a valid array
+      const parsedComments = Array.isArray(data.comments)
+        ? data.comments
+        : JSON.parse(data.comments || '[]');
 
-      const comment = await response.json();
-      setStory((prev) => ({
-        ...prev,
-        comments: [...prev.comments, comment],
-      }));
-      setNewComment("");
-      alert("Your comment has been posted!");
+      setStory(data);
+      setComments(parsedComments);
     } catch (error) {
-      alert("Failed to post comment. Please try again.");
+      console.error('Error fetching story:', error);
     }
   };
 
-  if (router.isFallback) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-t-blue-500 border-b-blue-500 rounded-full animate-spin"></div>
-      </div>
-    );
+  // Handle form submission for adding a new comment
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+
+    if (!newComment) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/stories/${id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: newComment,
+          userId: session.user.id,
+          username: session.user.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add comment');
+      }
+
+      const updatedStory = await response.json();
+
+      // Ensure comments is a valid array
+      const parsedComments = Array.isArray(updatedStory.comments)
+        ? updatedStory.comments
+        : JSON.parse(updatedStory.comments || '[]');
+
+      setComments(parsedComments);
+      setNewComment('');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  // Fetch story details when the component mounts
+  useEffect(() => {
+    if (id) {
+      fetchStory();
+    }
+  }, [id]);
+
+  // Redirect if not authenticated
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (!session) {
+    router.push('/');
+    return null;
   }
 
   if (!story) {
-    return (
-      <div className="container py-8">
-        <div className="flex flex-col items-center justify-center p-6 bg-white border rounded-lg shadow-sm">
-          <p className="text-lg text-gray-500">Story not found</p>
-          <Link href="/dashboard">
-            <button className="mt-4 text-blue-500 hover:underline">Return to Dashboard</button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <div>Loading story...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="container flex items-center h-16 px-4 mx-auto">
-          <Link href="/dashboard">
-            <button className="flex items-center gap-2 text-gray-700 hover:text-blue-500">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </button>
-          </Link>
+    <div>
+      <Navbar />
+      <div className="max-w-6xl px-4 py-8 mx-auto">
+        {/* Story Details Section */}
+        <div className="max-w-2xl p-6 mx-auto mb-8 bg-white rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold">{story.title}</h1>
+          <p className="mt-4 text-gray-700">{story.content}</p>
+          <p className="mt-2 text-sm text-gray-500">
+            By: {story.authorName} | Created: {new Date(story.createdAt).toLocaleString()}
+          </p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container max-w-3xl px-4 py-8 mx-auto">
-        <div className="p-6 bg-white border rounded-lg shadow-sm">
-          {/* Story Header */}
-          <div className="flex items-center gap-4">
-            <img
-              src={story.authorImage}
-              alt={story.authorName}
-              className="w-10 h-10 rounded-full"
+        {/* Comments Section */}
+        <div className="max-w-2xl p-6 mx-auto bg-white rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold">Comments</h2>
+          <div className="mt-4 space-y-4">
+            {comments.map((comment) => (
+              <div key={comment.id} className="p-4 border rounded">
+                <p className="text-gray-700">{comment.content}</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  By: {comment.username} | {new Date(comment.createdAt).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleAddComment} className="mt-4">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="w-full p-2 border rounded"
+              rows="3"
+              placeholder="Add a comment..."
+              required
             />
-            <div>
-              <h1 className="text-2xl font-bold">{story.title}</h1>
-              <p className="text-sm text-gray-500">
-                By {story.authorName} • {new Date(story.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-
-          {/* Story Content */}
-          <p className="mt-4 text-lg leading-relaxed text-gray-700">{story.content}</p>
-
-          {/* Comments Section */}
-          <div className="mt-8">
-            <h2 className="mb-4 text-xl font-bold">Comments</h2>
-            <form onSubmit={handleComment} className="flex gap-2 mb-6">
-              <textarea
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="3"
-              />
-              <button
-                type="submit"
-                className="flex items-center justify-center w-10 h-10 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
-
-            <div className="space-y-4">
-              {story.comments?.length === 0 ? (
-                <p className="text-center text-gray-500">No comments yet. Be the first to comment!</p>
-              ) : (
-                story.comments?.map((comment) => (
-                  <div key={comment.id} className="flex gap-4 p-4 border rounded-lg">
-                    <img
-                      src={comment.authorImage || "/default-user.png"}
-                      alt={comment.authorName}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold">{comment.authorName}</p>
-                        <span className="text-sm text-gray-500">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-gray-700">{comment.content}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+            <button
+              type="submit"
+              className="mt-2 px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+            >
+              Add Comment
+            </button>
+          </form>
         </div>
-      </main>
+      </div>
     </div>
   );
-}
-
-export async function getStaticPaths() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  const response = await fetch(`${apiUrl}/api/stories`);
-  const stories = await response.json();
-
-  const paths = stories.map((story) => ({
-    params: { id: story.id.toString() },
-  }));
-
-  return {
-    paths,
-    fallback: "blocking",
-  };
-}
-
-export async function getStaticProps({ params }) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  const response = await fetch(`${apiUrl}/api/stories/${params.id}`);
-  const story = await response.json();
-
-  if (!story) {
-    return {
-      notFound: true,
-    };
-  }
-
-  return {
-    props: {
-      story,
-    },
-    revalidate: 60,
-  }
 }
